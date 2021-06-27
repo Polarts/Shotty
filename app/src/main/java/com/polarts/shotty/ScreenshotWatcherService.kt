@@ -27,20 +27,20 @@ class ScreenshotWatcherService : Service() {
     private var fileCreationObserver: ScreenshotFileObserver? = null
 
     override fun onBind(intent: Intent): IBinder? {
-        Log.d(tag, "Some component want to bind with the service")
+        log("["+tag+"] " +  "Some component want to bind with the service")
         // We don't provide binding, so return null
         return null
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(tag, "onStartCommand executed with startId: $startId")
+        log("[$tag] onStartCommand executed with startId: $startId")
         if (intent != null) {
             val action = intent.action
-            Log.d(tag, "using an intent with action $action")
+            log("[$tag] using an intent with action $action")
             when (action) {
                 Actions.START.name -> startService()
                 Actions.STOP.name -> stopService()
-                else -> Log.d(tag, "This should never happen. No action in the received intent")
+                else -> log("["+tag+"] " +  "This should never happen. No action in the received intent")
             }
         } else {
             Log.d(
@@ -56,9 +56,9 @@ class ScreenshotWatcherService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d(tag, "The service has been created".toUpperCase())
+        log("["+tag+"] " +  "The service has been created".toUpperCase())
         if (VERSION.SDK_INT >= VERSION_CODES.R) {
-            fileCreationObserver = ScreenshotFileObserver(this::onObserverFinalize)
+            fileCreationObserver = ScreenshotFileObserver(this::onObserverFinalize, applicationContext)
         }
 
         val notification = createNotification()
@@ -67,13 +67,13 @@ class ScreenshotWatcherService : Service() {
 
     private fun onObserverFinalize() {
         if (VERSION.SDK_INT >= VERSION_CODES.Q) {
-            fileCreationObserver = ScreenshotFileObserver(this::onObserverFinalize)
+            fileCreationObserver = ScreenshotFileObserver(this::onObserverFinalize, applicationContext)
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d(tag, "The service has been destroyed".toUpperCase())
+        log("["+tag+"] " +  "The service has been destroyed".toUpperCase())
         Toast.makeText(this, "Service destroyed", Toast.LENGTH_SHORT).show()
     }
 
@@ -98,7 +98,7 @@ class ScreenshotWatcherService : Service() {
 
     private fun startService() {
         if (isServiceStarted) return
-        Log.d(tag, "Starting the foreground service task")
+        log("[$tag] Starting the foreground service task")
         Toast.makeText(this, "Service starting its task", Toast.LENGTH_SHORT).show()
         isServiceStarted = true
         setServiceState(this, ServiceState.STARTED)
@@ -119,8 +119,7 @@ class ScreenshotWatcherService : Service() {
     }
 
     private fun stopService() {
-        Log.d(tag, "Stopping the foreground service")
-        //Toast.makeText(this, "Service stopping", Toast.LENGTH_SHORT).show()
+        log("[$tag] Stopping the foreground service")
         try {
             wakeLock?.let {
                 if (it.isHeld) {
@@ -130,7 +129,7 @@ class ScreenshotWatcherService : Service() {
             stopForeground(true)
             //stopSelf()
         } catch (e: Exception) {
-            Log.d(tag, "Service stopped without being started: ${e.message}")
+            log("["+tag+"] " +  "EXCPTION: Service stopped without being started: ${e.message}")
         }
         isServiceStarted = false
         setServiceState(this, ServiceState.STOPPED)

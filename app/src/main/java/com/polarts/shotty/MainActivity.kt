@@ -14,7 +14,7 @@ import androidx.core.app.ActivityCompat
 
 class MainActivity : AppCompatActivity() {
 
-    private final val tag = "MainActivity"
+    private val tag = "MainActivity"
     private val REQUEST_EXTERNAL_STORAGE = 1
     private val PERMISSIONS_STORAGE = arrayOf<String>(
             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -49,14 +49,14 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.startButton).let {
             it.setOnClickListener {
-                Log.d(tag, "START THE FOREGROUND SERVICE ON DEMAND")
+                log("[$tag] START THE FOREGROUND SERVICE ON DEMAND")
                 actionOnService(Actions.START)
             }
         }
 
         findViewById<Button>(R.id.stopButton).let {
             it.setOnClickListener {
-                Log.d(tag, "STOP THE FOREGROUND SERVICE ON DEMAND")
+                log("[$tag] STOP THE FOREGROUND SERVICE ON DEMAND")
                 actionOnService(Actions.STOP)
             }
         }
@@ -69,11 +69,11 @@ class MainActivity : AppCompatActivity() {
         Intent(this, ScreenshotWatcherService::class.java).also {
             it.action = action.name
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Log.d(tag, "Starting the service in >=26 Mode")
+                log("[$tag] Starting the service in >=26 Mode")
                 startForegroundService(it)
                 return
             }
-            Log.d(tag, "Starting the service in < 26 Mode")
+            log("[$tag] Starting the service in < 26 Mode")
             startService(it)
         }
     }

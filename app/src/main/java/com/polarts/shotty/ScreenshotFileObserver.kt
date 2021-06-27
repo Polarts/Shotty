@@ -1,18 +1,20 @@
 package com.polarts.shotty
 
+import android.content.Context
 import android.os.Build
 import android.os.Environment
 import android.os.FileObserver
-import android.util.Log
 import androidx.annotation.RequiresApi
 import java.io.*
 
 @RequiresApi(Build.VERSION_CODES.Q)
-class ScreenshotFileObserver(var onFinalize: () -> Unit)
-    : FileObserver(
-        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).absolutePath + "/Screenshots"),
-        CREATE or MODIFY or MOVED_TO
-    ) {
+class ScreenshotFileObserver(
+    var onFinalize: () -> Unit,
+    val context: Context
+): FileObserver(
+    File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).absolutePath + "/Screenshots"),
+    CREATE or MODIFY or MOVED_TO
+) {
 
     private val tag = "ScreenshotFileObserver"
     private var rootPath = ""
@@ -30,45 +32,33 @@ class ScreenshotFileObserver(var onFinalize: () -> Unit)
         if (path != null
             && !path.startsWith(".pending")) {
 
-            val appName = path?.split('_')?.last()?.split('.')?.first()
-
-            appName?.let {
-                moveFile("$rootPath/Screenshots/", path, "$rootPath/$it/")
-            }
+            var appName = path.split('_').last()
+            appName = appName.substring(0, appName.lastIndexOf('.'))
+            log("[$tag] New screenshot detected for app $appName! Trying to move...")
+            moveFile("$rootPath/Screenshots/", path, "$rootPath/$appName/")
         }
     }
 
     private fun moveFile(inputPath: String, inputFile: String, outputPath: String) {
-        var inputStream: InputStream? = null
-        var outputStream: OutputStream? = null
         try {
-
             //create output directory if it doesn't exist
             val dir = File(outputPath)
             if (!dir.exists()) {
                 dir.mkdirs()
             }
-            inputStream = FileInputStream(inputPath + inputFile)
-            outputStream = FileOutputStream(outputPath + inputFile)
-            val buffer = ByteArray(1024)
-            var read: Int
-            while (inputStream.read(buffer).also { read = it } != -1) {
-                outputStream.write(buffer, 0, read)
-            }
-            inputStream.close()
-            inputStream = null
 
-            // write the output file
-            outputStream.flush()
-            outputStream.close()
-            outputStream = null
+            val inputChannel = FileInputStream(inputPath + inputFile).channel
+            val outputChannel = FileOutputStream(outputPath + inputFile).channel
+            inputChannel.transferTo(0, inputChannel.size(), outputChannel)
+            inputChannel.close()
+            outputChannel.close()
 
             // delete the original file
-            File(inputPath + inputFile).delete()
-        } catch (e: FileNotFoundException) {
-            e.message?.let { Log.e(tag, it) }
+            if (!File(inputPath + inputFile).delete()) {
+                log("[$tag] Could ot delete $inputPath$inputFile for unknown reason")
+            }
         } catch (e: Exception) {
-            e.message?.let { Log.e(tag, it) }
+            e.message?.let { log("[$tag] EXCEPTION: could not complete file movement: $it") }
         }
     }
 
